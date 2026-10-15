@@ -4,3 +4,4 @@ out/
 .superpowers/
 .playwright-mcp/
 *.log
+task*-render.png
