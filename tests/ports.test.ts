@@ -15,6 +15,14 @@ describe("portInfo", () => {
   test("does not know 65534", () => {
     expect(portInfo(65534)).toBeNull();
   });
+
+  test("knows 27017 as MongoDB, not Steam", () => {
+    expect(portInfo(27017)?.name).toBe("MongoDB");
+  });
+
+  test("knows 5354", () => {
+    expect(portInfo(5354)).not.toBeNull();
+  });
 });
 
 describe("explainSocket", () => {
@@ -45,6 +53,18 @@ describe("explainSocket", () => {
   test("an unknown named port still reads plainly", () => {
     expect(explainSocket("1.2.3.4", 1234, "established", "app.exe")).toBe(
       "app.exe talking to 1.2.3.4 on port 1234.",
+    );
+  });
+
+  test("an established loopback connection is not described as a listener", () => {
+    expect(explainSocket("127.0.0.1", 9229, "established", "Code.exe")).toBe(
+      "Code.exe talking to 127.0.0.1 on port 9229.",
+    );
+  });
+
+  test("a closing connection uses past tense", () => {
+    expect(explainSocket("142.250.185.78", 443, "wait", "chrome.exe")).toBe(
+      "chrome.exe just finished a connection to 142.250.185.78 on port 443, the encrypted web. Every secure website uses this door.",
     );
   });
 

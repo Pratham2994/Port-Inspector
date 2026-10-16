@@ -9,7 +9,7 @@ import ConnList from "./components/ConnList";
 import { TipProvider } from "./components/Tip";
 
 export default function App() {
-  const [snap, setSnap] = useState<Snapshot>(() => mockSnapshot(Date.now()));
+  const [snap, setSnap] = useState<Snapshot | null>(hasBridge() ? null : mockSnapshot(Date.now()));
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   useEffect(() => {
@@ -20,20 +20,27 @@ export default function App() {
     return () => clearInterval(id);
   }, []);
 
-  const groups = groupByEndpoint(snap.conns);
+  const groups = groupByEndpoint(snap?.conns ?? []);
+  const totals = snap?.totals ?? { conns: 0, listening: 0, down: 0, up: 0 };
 
   return (
     <TipProvider>
       <div className="app">
-        <TopBar totals={snap.totals} />
+        <TopBar totals={totals} />
         <div className="main">
-          <MapCanvas groups={groups} selectedKey={selectedKey} latencies={snap.latencies ?? {}} />
-          <ConnList
-            groups={groups}
-            selectedKey={selectedKey}
-            now={snap.t}
-            onSelect={(k) => setSelectedKey((cur) => (cur === k ? null : k))}
-          />
+          <MapCanvas groups={groups} selectedKey={selectedKey} latencies={snap?.latencies ?? {}} />
+          {snap ? (
+            <ConnList
+              groups={groups}
+              selectedKey={selectedKey}
+              now={snap.t}
+              onSelect={(k) => setSelectedKey((cur) => (cur === k ? null : k))}
+            />
+          ) : (
+            <div className="list">
+              <div className="empty">Reading connections...</div>
+            </div>
+          )}
         </div>
       </div>
     </TipProvider>

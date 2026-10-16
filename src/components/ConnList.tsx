@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { ConnGroup } from "../data/types";
 import ConnRow from "./ConnRow";
 import Drawer from "./Drawer";
@@ -19,8 +19,9 @@ export default function ConnList({ groups, selectedKey, now, onSelect }: Props) 
   const prevGroups = useRef<ConnGroup[] | null>(null);
   const [entering, setEntering] = useState<Set<string>>(new Set());
   const [leaving, setLeaving] = useState<ConnGroup[]>([]);
+  const [burst, setBurst] = useState(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const before = prevGroups.current;
     prevGroups.current = groups;
     if (!before) return;
@@ -31,10 +32,12 @@ export default function ConnList({ groups, selectedKey, now, onSelect }: Props) 
     const gone = before.filter((g) => !nowKeys.has(g.key));
 
     if (arrived.length + gone.length > ANIM_CAP) {
+      setBurst(true);
       setEntering(new Set());
       setLeaving([]);
       return;
     }
+    setBurst(false);
     setEntering(new Set(arrived.map((g) => g.key)));
     if (gone.length) {
       const goneKeys = new Set(gone.map((g) => g.key));
@@ -55,7 +58,7 @@ export default function ConnList({ groups, selectedKey, now, onSelect }: Props) 
         <span className="col" {...tip.for("Live means talking right now. Listening means waiting for a knock on the door.")}>State</span>
         <span className="col">Traffic</span>
       </div>
-      <div className="rows">
+      <div className={`rows${burst ? " burst" : ""}`}>
         {groups.map((g) => (
           <div key={g.key} className={`item${entering.has(g.key) ? " entering" : ""}`}>
             <ConnRow group={g} selected={g.key === selectedKey} now={now} onSelect={onSelect} />
