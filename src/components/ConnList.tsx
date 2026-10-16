@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import type { ConnGroup } from "../data/types";
 import ConnRow from "./ConnRow";
 import Drawer from "./Drawer";
@@ -10,8 +11,42 @@ interface Props {
   onSelect: (key: string) => void;
 }
 
+const ANIM_CAP = 30;
+const LEAVE_MS = 420;
+
 export default function ConnList({ groups, selectedKey, now, onSelect }: Props) {
   const tip = useTip();
+  const prevGroups = useRef<ConnGroup[] | null>(null);
+  const [entering, setEntering] = useState<Set<string>>(new Set());
+  const [leaving, setLeaving] = useState<ConnGroup[]>([]);
+
+  useEffect(() => {
+    const before = prevGroups.current;
+    prevGroups.current = groups;
+    if (!before) return;
+
+    const beforeKeys = new Set(before.map((g) => g.key));
+    const nowKeys = new Set(groups.map((g) => g.key));
+    const arrived = groups.filter((g) => !beforeKeys.has(g.key));
+    const gone = before.filter((g) => !nowKeys.has(g.key));
+
+    if (arrived.length + gone.length > ANIM_CAP) {
+      setEntering(new Set());
+      setLeaving([]);
+      return;
+    }
+    setEntering(new Set(arrived.map((g) => g.key)));
+    if (gone.length) {
+      const goneKeys = new Set(gone.map((g) => g.key));
+      setLeaving((cur) => [...cur.filter((g) => !goneKeys.has(g.key)), ...gone]);
+      setTimeout(() => {
+        setLeaving((cur) => cur.filter((g) => !goneKeys.has(g.key)));
+      }, LEAVE_MS);
+    }
+  }, [groups]);
+
+  const leavingVisible = leaving.filter((g) => !groups.some((n) => n.key === g.key));
+
   return (
     <div className="list">
       <div className="cols">
@@ -22,9 +57,14 @@ export default function ConnList({ groups, selectedKey, now, onSelect }: Props) 
       </div>
       <div className="rows">
         {groups.map((g) => (
-          <div key={g.key} className="item">
+          <div key={g.key} className={`item${entering.has(g.key) ? " entering" : ""}`}>
             <ConnRow group={g} selected={g.key === selectedKey} now={now} onSelect={onSelect} />
             {g.key === selectedKey && <Drawer group={g} />}
+          </div>
+        ))}
+        {leavingVisible.map((g) => (
+          <div key={g.key} className="item leaving">
+            <ConnRow group={g} selected={false} now={now} onSelect={() => {}} />
           </div>
         ))}
       </div>

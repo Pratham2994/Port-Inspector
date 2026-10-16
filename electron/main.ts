@@ -1,10 +1,9 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow } from "electron";
 import { join } from "path";
-
-// Placeholder emitter until Task 3 replaces it with the live collector.
-import { mockSnapshot } from "../src/data/mock";
+import { startCollector } from "../src/data/collector";
 
 let win: BrowserWindow | null = null;
+let stopCollector: (() => void) | null = null;
 
 function createWindow() {
   win = new BrowserWindow({
@@ -31,14 +30,14 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
+  stopCollector = startCollector((snapshot) => {
+    if (win && !win.isDestroyed()) win.webContents.send("snapshot", snapshot);
+  });
+});
 
-  const timer = setInterval(() => {
-    if (!win || win.isDestroyed()) return;
-    win.webContents.send("snapshot", mockSnapshot(Date.now()));
-  }, 1_000);
-
-  ipcMain.handle("ready", () => true);
-  app.on("before-quit", () => clearInterval(timer));
+app.on("before-quit", () => {
+  stopCollector?.();
+  stopCollector = null;
 });
 
 app.on("window-all-closed", () => {

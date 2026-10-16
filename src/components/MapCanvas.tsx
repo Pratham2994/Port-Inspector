@@ -31,10 +31,31 @@ function arcPath(angleDeg: number, frac: number): string {
 
 const short = (p: string) => p.replace(/\.exe$/i, "");
 
+function localIpOf(groups: ConnGroup[]): string {
+  const counts = new Map<string, number>();
+  for (const g of groups) {
+    for (const c of g.conns) {
+      const a = c.localAddr;
+      if (a === "0.0.0.0" || a === "::" || a === "::1" || a.startsWith("127.")) continue;
+      counts.set(a, (counts.get(a) ?? 0) + 1);
+    }
+  }
+  let best = "";
+  let bestN = 0;
+  for (const [a, n] of counts) {
+    if (n > bestN) {
+      best = a;
+      bestN = n;
+    }
+  }
+  return best || "this PC";
+}
+
 export default function MapCanvas({ groups, selectedKey }: Props) {
   const tip = useTip();
   const remotes = groups.filter((g) => g.remoteAddr != null && g.state === "established");
   const listeners = groups.filter((g) => g.listenPort != null);
+  const localIp = localIpOf(groups);
 
   return (
     <div className="map">
@@ -102,7 +123,7 @@ export default function MapCanvas({ groups, selectedKey }: Props) {
           <g {...tip.for("Your PC. Every line on this map starts at this machine.")}>
             <circle cx={CX} cy={CY} r={NODE} fill="var(--panel)" stroke="rgba(255,255,255,0.22)" strokeWidth="1" />
             <text x={CX} y={CY - 2} textAnchor="middle" className="map-label w" style={{ fontSize: 8.5 }}>THIS PC</text>
-            <text x={CX} y={CY + 10} textAnchor="middle" className="map-label" style={{ fontSize: 7.5 }}>192.168.1.24</text>
+            <text x={CX} y={CY + 10} textAnchor="middle" className="map-label" style={{ fontSize: 7.5 }}>{localIp}</text>
           </g>
         </svg>
       </div>

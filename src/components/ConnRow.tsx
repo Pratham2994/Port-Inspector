@@ -1,6 +1,5 @@
 import type { ConnGroup } from "../data/types";
 import { fmtAge } from "../fmt";
-import Sparkline from "./Sparkline";
 import { useTip } from "./Tip";
 
 interface Props {
@@ -60,7 +59,6 @@ export default function ConnRow({ group, selected, now, onSelect }: Props) {
         <span className={`rate mono${group.state === "listening" ? " idle" : ""}`}>
           {group.state === "listening" ? "idle" : <small>live</small>}
         </span>
-        {group.state === "established" && <Sparkline seed={group.key} hot={selected} />}
       </div>
     </div>
   );
