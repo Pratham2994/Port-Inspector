@@ -1,4 +1,5 @@
 import { execFile, spawn, type ChildProcess } from "child_process";
+import { promises as dns } from "dns";
 import { promisify } from "util";
 import { parseAdapterStats, ratesFromDeltas, type AdapterStats } from "./adapters";
 import { connKey } from "./diff";
@@ -48,6 +49,23 @@ export function startCollector(emit: (s: Snapshot) => void, opts: CollectorOpts 
   const firstSeen = new Map<string, number>();
   const latency = new LatencyCache(pingIp);
   const knownLatencies: Record<string, number | null> = {};
+  // Reverse-DNS names, looked up once per address. null means Windows had none.
+  const knownNames: Record<string, string | null> = {};
+  const namePending = new Set<string>();
+
+  function lookupName(ip: string): void {
+    if (ip in knownNames || namePending.has(ip)) return;
+    namePending.add(ip);
+    dns
+      .reverse(ip)
+      .then((list) => {
+        knownNames[ip] = list[0] ?? null;
+      })
+      .catch(() => {
+        knownNames[ip] = null;
+      })
+      .finally(() => namePending.delete(ip));
+  }
   let stopped = false;
   let ticking = false;
 
@@ -159,6 +177,7 @@ export function startCollector(emit: (s: Snapshot) => void, opts: CollectorOpts 
       for (const c of conns) {
         if (c.state === "established" && pingable(c.remoteAddr)) {
           hosts.add(c.remoteAddr);
+          lookupName(c.remoteAddr);
           void latency.get(c.remoteAddr).then((v) => {
             knownLatencies[c.remoteAddr!] = v;
           });
@@ -167,7 +186,10 @@ export function startCollector(emit: (s: Snapshot) => void, opts: CollectorOpts 
       const latencies: Record<string, number | null> = {};
       for (const h of hosts) if (h in knownLatencies) latencies[h] = knownLatencies[h];
 
-      emit({ t: now, conns, totals, latencies });
+      const hostnames: Record<string, string | null> = {};
+      for (const h of hosts) if (h in knownNames) hostnames[h] = knownNames[h];
+
+      emit({ t: now, conns, totals, latencies, hostnames });
     } catch {
       // netstat failed this tick; keep the last emitted state
     } finally {

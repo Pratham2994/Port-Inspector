@@ -51,8 +51,8 @@ describe("explainSocket", () => {
   });
 
   test("an unknown named port still reads plainly", () => {
-    expect(explainSocket("1.2.3.4", 1234, "established", "app.exe")).toBe(
-      "app.exe talking to 1.2.3.4 on port 1234.",
+    expect(explainSocket("1.2.3.4", 12345, "established", "app.exe")).toBe(
+      "app.exe talking to 1.2.3.4 on port 12345.",
     );
   });
 
@@ -74,7 +74,7 @@ describe("explainSocket", () => {
       explainSocket("127.0.0.1", 135, "listening", "svchost.exe"),
       explainSocket("142.250.185.78", 443, "established", "chrome.exe"),
       explainSocket("1.2.3.4", 51820, "established", "app.exe"),
-      explainSocket("1.2.3.4", 1234, "established", "app.exe"),
+      explainSocket("1.2.3.4", 12345, "established", "app.exe"),
       explainSocket(null, 3389, "listening", "svchost.exe"),
     ];
     for (const s of samples) expect(s).not.toContain("\u2014");

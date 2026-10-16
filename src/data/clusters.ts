@@ -12,9 +12,13 @@ export interface Place {
 export interface TalkerGroup {
   key: string;
   pid: number;
+  /** How many separate processes share this name (Electron apps run many). */
+  pids: number;
   procName: string;
   proc: ProcInfo;
   sockets: number;
+  /** Connections that stay inside this PC: parts of programs talking to each other. */
+  localSockets: number;
   places: Place[];
   firstSeen: number;
 }
@@ -155,7 +159,12 @@ export function listenerDoors(conns: Connection[]): { doors: ListenerDoor[]; tot
  */
 export function talkerGroups(conns: Connection[]): { talkers: TalkerGroup[]; finished: number } {
   let finished = 0;
-  const acc = new Map<number, { procName: string; sockets: number; places: Map<string, Place>; firstSeen: number }>();
+  // Keyed by name: one app often runs as many processes (Claude, browsers),
+  // and the person thinks of it as one program.
+  const acc = new Map<
+    string,
+    { pid: number; pids: Set<number>; sockets: number; localSockets: number; places: Map<string, Place>; firstSeen: number }
+  >();
 
   for (const c of conns) {
     if (c.state === "listening") continue;
@@ -163,13 +172,15 @@ export function talkerGroups(conns: Connection[]): { talkers: TalkerGroup[]; fin
       finished++;
       continue;
     }
-    let t = acc.get(c.pid);
+    let t = acc.get(c.procName);
     if (!t) {
-      t = { procName: c.procName, sockets: 0, places: new Map(), firstSeen: c.firstSeen };
-      acc.set(c.pid, t);
+      t = { pid: c.pid, pids: new Set(), sockets: 0, localSockets: 0, places: new Map(), firstSeen: c.firstSeen };
+      acc.set(c.procName, t);
     }
+    t.pids.add(c.pid);
     if (c.firstSeen < t.firstSeen) t.firstSeen = c.firstSeen;
     t.sockets++;
+    if (c.remoteAddr == null || isLoopback(c.remoteAddr)) t.localSockets++;
     const host = c.remoteAddr ?? "this PC";
     let p = t.places.get(host);
     if (!p) {
@@ -182,13 +193,18 @@ export function talkerGroups(conns: Connection[]): { talkers: TalkerGroup[]; fin
   }
 
   const talkers: TalkerGroup[] = [...acc.entries()]
-    .map(([pid, t]) => ({
-      key: String(pid),
-      pid,
-      procName: t.procName,
-      proc: procInfo(t.procName),
+    .map(([procName, t]) => ({
+      key: procName,
+      pid: t.pid,
+      pids: t.pids.size,
+      procName,
+      proc: procInfo(procName),
       sockets: t.sockets,
-      places: [...t.places.values()].sort((x, y) => y.sockets - x.sockets),
+      localSockets: t.localSockets,
+      // Outside places first, then busiest.
+      places: [...t.places.values()].sort(
+        (x, y) => Number(isLoopback(x.host)) - Number(isLoopback(y.host)) || y.sockets - x.sockets,
+      ),
       firstSeen: t.firstSeen,
     }))
     .sort((x, y) => y.sockets - x.sockets);

@@ -25,6 +25,8 @@ export interface Snapshot {
   conns: Connection[];
   totals: Totals;
   latencies?: Record<string, number | null>;
+  /** Reverse-DNS names for remote addresses; null when there is none. */
+  hostnames?: Record<string, string | null>;
 }
 
 /** Raw netstat row before it is joined with process names and history. */

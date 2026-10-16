@@ -11,7 +11,7 @@ function createWindow() {
     height: 720,
     minWidth: 900,
     minHeight: 600,
-    backgroundColor: "#131211",
+    backgroundColor: "#0a0d12",
     title: "Port Inspector",
     autoHideMenuBar: true,
     webPreferences: {

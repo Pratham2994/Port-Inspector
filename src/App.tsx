@@ -27,10 +27,11 @@ export default function App() {
       <div className="app">
         <TopBar totals={totals} />
         <div className="main">
-          <MapCanvas conns={conns} selectedProc={selected?.proc ?? null} latencies={snap?.latencies ?? {}} />
+          <MapCanvas conns={conns} selectedProc={selected?.proc ?? null} latencies={snap?.latencies ?? {}} hostnames={snap?.hostnames ?? {}} />
           {snap ? (
             <ConnList
               conns={conns}
+              hostnames={snap.hostnames ?? {}}
               selectedKey={selected?.key ?? null}
               now={snap.t}
               onSelect={(key, proc) => setSelected((cur) => (cur?.key === key ? null : { key, proc }))}
