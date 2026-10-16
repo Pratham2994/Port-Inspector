@@ -12,3 +12,19 @@ export function fmtAge(ms: number): string {
 export function fmtFirstSeen(t: number): string {
   return new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
+
+/** Rates read in KB/s until a full MB/s makes more sense. */
+export function fmtRate(kbps: number): string {
+  if (kbps >= 1000) return `${(kbps / 1000).toFixed(1)} MB/s`;
+  return `${Math.round(kbps)} KB/s`;
+}
+
+/** Long IPv6 addresses show their first groups and an ellipsis. */
+export function shortAddr(addr: string): string {
+  if (!addr.includes(":")) return addr;
+  const parts = addr.split(":");
+  if (parts.length <= 4 && !addr.includes("::")) return addr;
+  if (addr === "::1") return addr;
+  const head = parts.slice(0, 3).join(":").replace(/:+$/, "");
+  return `${head}...`;
+}

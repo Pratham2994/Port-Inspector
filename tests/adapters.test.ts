@@ -25,8 +25,9 @@ describe("parseAdapterStats", () => {
 });
 
 describe("ratesFromDeltas", () => {
-  test("deltas become MB/s rounded to one decimal", () => {
-    expect(ratesFromDeltas({ rx: 0, tx: 0 }, { rx: 1_000_000, tx: 500_000 }, 1)).toEqual({ down: 1, up: 0.5 });
+  test("deltas become KB/s rounded to one decimal", () => {
+    expect(ratesFromDeltas({ rx: 0, tx: 0 }, { rx: 1_000_000, tx: 500_000 }, 1)).toEqual({ down: 1000, up: 500 });
+    expect(ratesFromDeltas({ rx: 0, tx: 0 }, { rx: 21_500, tx: 0 }, 1)).toEqual({ down: 21.5, up: 0 });
   });
 
   test("the first poll is quiet", () => {

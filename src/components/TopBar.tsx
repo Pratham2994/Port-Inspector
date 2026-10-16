@@ -1,4 +1,5 @@
 import type { Totals } from "../data/types";
+import { fmtRate } from "../fmt";
 import { useTip } from "./Tip";
 
 export default function TopBar({ totals }: { totals: Totals }) {
@@ -16,11 +17,11 @@ export default function TopBar({ totals }: { totals: Totals }) {
         </span>
         <span className="sep">·</span>
         <span {...tip.for("Data arriving on this PC, every second.")}>
-          <b>{totals.down.toFixed(1)}</b> MB/s ↓
+          <b>{fmtRate(totals.down)}</b> ↓
         </span>
         <span className="sep">·</span>
         <span {...tip.for("Data leaving this PC, every second.")}>
-          <b>{totals.up.toFixed(1)}</b> MB/s ↑
+          <b>{fmtRate(totals.up)}</b> ↑
         </span>
       </span>
     </header>

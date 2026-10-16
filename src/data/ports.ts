@@ -1,4 +1,4 @@
-interface PortEntry {
+export interface PortEntry {
   name: string;
   plain: string;
 }

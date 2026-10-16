@@ -1,4 +1,4 @@
-import { execFile } from "child_process";
+import { execFile, spawn, type ChildProcess } from "child_process";
 import { promisify } from "util";
 import { parseAdapterStats, ratesFromDeltas, type AdapterStats } from "./adapters";
 import { connKey } from "./diff";
@@ -51,46 +51,50 @@ export function startCollector(emit: (s: Snapshot) => void, opts: CollectorOpts 
   let stopped = false;
   let ticking = false;
 
-  // Adapter throughput: cumulative counters polled every ~2s (PowerShell spawns are heavy).
+  // Adapter throughput: one long-lived PowerShell prints cumulative counters
+  // every second. Spawning a fresh PowerShell per poll took longer than the poll
+  // itself, so rates almost never had two samples to compare.
   let prevAdapters: AdapterStats | null = null;
   let prevAdaptersAt = 0;
-  let adapterFailAt = 0;
-  let adapterBusy = false;
   let lastRates = { down: 0, up: 0 };
-  let nextAdapterPoll = 0;
+  let adapterProc: ChildProcess | null = null;
+  let adapterRestart: NodeJS.Timeout | null = null;
 
-  function pollAdapters(): void {
-    if (adapterBusy) return;
-    const nowMs = Date.now();
-    if (adapterFailAt && nowMs - adapterFailAt < 30_000) return;
-    adapterBusy = true;
-    const started = nowMs;
-    run("powershell", ["-NoProfile", "-Command", "Get-NetAdapterStatistics | ConvertTo-Json"], {
+  const ADAPTER_LOOP =
+    "while ($true) { Get-NetAdapterStatistics | Select-Object ReceivedBytes,SentBytes | ConvertTo-Json -Compress; Start-Sleep -Milliseconds 1000 }";
+
+  function startAdapters(): void {
+    if (stopped) return;
+    let buf = "";
+    const child = spawn("powershell", ["-NoProfile", "-NonInteractive", "-Command", ADAPTER_LOOP], {
       windowsHide: true,
-      maxBuffer: 4 * 1024 * 1024,
-    })
-      .then(({ stdout }) => {
-        if (Date.now() - started > 2_000) {
-          adapterFailAt = Date.now();
-          return;
-        }
-        const stats = parseAdapterStats(stdout);
-        if (!stats) {
-          adapterFailAt = Date.now();
-          return;
-        }
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    adapterProc = child;
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk: string) => {
+      buf += chunk;
+      let nl: number;
+      while ((nl = buf.indexOf("\n")) >= 0) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        const stats = line ? parseAdapterStats(line) : null;
+        if (!stats) continue;
         const at = Date.now();
         lastRates = ratesFromDeltas(prevAdapters, stats, (at - prevAdaptersAt) / 1000);
         prevAdapters = stats;
         prevAdaptersAt = at;
-        adapterFailAt = 0;
-      })
-      .catch(() => {
-        adapterFailAt = Date.now();
-      })
-      .finally(() => {
-        adapterBusy = false;
-      });
+      }
+    });
+    const restart = () => {
+      if (adapterProc !== child) return;
+      adapterProc = null;
+      prevAdapters = null;
+      lastRates = { down: 0, up: 0 };
+      if (!stopped) adapterRestart = setTimeout(startAdapters, 5_000);
+    };
+    child.on("exit", restart);
+    child.on("error", restart);
   }
 
   async function refreshNames(): Promise<void> {
@@ -114,11 +118,6 @@ export function startCollector(emit: (s: Snapshot) => void, opts: CollectorOpts 
       const { stdout } = await run("netstat", ["-n", "-ano"], { windowsHide: true, maxBuffer: MAX_BUFFER });
       const sockets = parseNetstat(stdout);
       const now = Date.now();
-
-      if (now >= nextAdapterPoll) {
-        nextAdapterPoll = now + 2_000;
-        pollAdapters();
-      }
 
       if (names.size === 0) {
         await refreshNames();
@@ -176,11 +175,15 @@ export function startCollector(emit: (s: Snapshot) => void, opts: CollectorOpts 
     }
   }
 
+  startAdapters();
   void tick();
   const timer = setInterval(() => void tick(), intervalMs);
 
   return () => {
     stopped = true;
     clearInterval(timer);
+    if (adapterRestart) clearTimeout(adapterRestart);
+    adapterProc?.kill();
+    adapterProc = null;
   };
 }

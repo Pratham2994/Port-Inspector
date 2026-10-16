@@ -8,8 +8,8 @@ test("the window opens with live rows", async () => {
   await win.waitForSelector(".wordmark", { timeout: 10_000 });
   await expect(win.locator(".wordmark")).toHaveText(/PORT\s+INSPECTOR/);
 
-  await win.waitForSelector(".row", { timeout: 10_000 });
-  const rows = await win.locator(".row").count();
+  await win.waitForSelector(".prow", { timeout: 10_000 });
+  const rows = await win.locator(".prow").count();
   expect(rows).toBeGreaterThan(0);
 
   expect(await win.locator(".tooltip").count()).toBe(1);

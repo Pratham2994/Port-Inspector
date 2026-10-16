@@ -32,13 +32,13 @@ export function parseAdapterStats(json: string): AdapterStats | null {
   return usable ? { rx, tx } : null;
 }
 
-/** Cumulative counters over dt seconds become MB/s. Resets read as zero. */
+/** Cumulative counters over dt seconds become KB/s. Resets read as zero. */
 export function ratesFromDeltas(
   prev: AdapterStats | null,
   next: AdapterStats,
   dt: number,
 ): { down: number; up: number } {
   if (!prev || dt <= 0) return { down: 0, up: 0 };
-  const mb = (delta: number) => (delta <= 0 ? 0 : Math.round((delta / dt / 1e6) * 10) / 10);
-  return { down: mb(next.rx - prev.rx), up: mb(next.tx - prev.tx) };
+  const kb = (delta: number) => (delta <= 0 ? 0 : Math.round((delta / dt / 1e3) * 10) / 10);
+  return { down: kb(next.rx - prev.rx), up: kb(next.tx - prev.tx) };
 }

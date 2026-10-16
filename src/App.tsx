@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Snapshot } from "./data/types";
 import { mockSnapshot } from "./data/mock";
-import { groupByEndpoint } from "./data/grouping";
 import { hasBridge } from "./env";
 import TopBar from "./components/TopBar";
 import MapCanvas from "./components/MapCanvas";
@@ -10,7 +9,7 @@ import { TipProvider } from "./components/Tip";
 
 export default function App() {
   const [snap, setSnap] = useState<Snapshot | null>(hasBridge() ? null : mockSnapshot(Date.now()));
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [selected, setSelected] = useState<{ key: string; proc: string } | null>(null);
 
   useEffect(() => {
     if (hasBridge()) {
@@ -20,7 +19,7 @@ export default function App() {
     return () => clearInterval(id);
   }, []);
 
-  const groups = groupByEndpoint(snap?.conns ?? []);
+  const conns = snap?.conns ?? [];
   const totals = snap?.totals ?? { conns: 0, listening: 0, down: 0, up: 0 };
 
   return (
@@ -28,13 +27,13 @@ export default function App() {
       <div className="app">
         <TopBar totals={totals} />
         <div className="main">
-          <MapCanvas groups={groups} selectedKey={selectedKey} latencies={snap?.latencies ?? {}} />
+          <MapCanvas conns={conns} selectedProc={selected?.proc ?? null} latencies={snap?.latencies ?? {}} />
           {snap ? (
             <ConnList
-              groups={groups}
-              selectedKey={selectedKey}
+              conns={conns}
+              selectedKey={selected?.key ?? null}
               now={snap.t}
-              onSelect={(k) => setSelectedKey((cur) => (cur === k ? null : k))}
+              onSelect={(key, proc) => setSelected((cur) => (cur?.key === key ? null : { key, proc }))}
             />
           ) : (
             <div className="list">
