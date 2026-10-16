@@ -3,5 +3,7 @@ dist/
 out/
 .superpowers/
 .playwright-mcp/
+e2e/out/
+test-results/
 *.log
 task*-render.png

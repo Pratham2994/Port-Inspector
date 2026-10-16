@@ -1,5 +1,6 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
+import { parseAdapterStats, ratesFromDeltas, type AdapterStats } from "./adapters";
 import { connKey } from "./diff";
 import { LatencyCache, parsePing } from "./latency";
 import { parseNetstat } from "./netstat";
@@ -50,6 +51,48 @@ export function startCollector(emit: (s: Snapshot) => void, opts: CollectorOpts 
   let stopped = false;
   let ticking = false;
 
+  // Adapter throughput: cumulative counters polled every ~2s (PowerShell spawns are heavy).
+  let prevAdapters: AdapterStats | null = null;
+  let prevAdaptersAt = 0;
+  let adapterFailAt = 0;
+  let adapterBusy = false;
+  let lastRates = { down: 0, up: 0 };
+  let nextAdapterPoll = 0;
+
+  function pollAdapters(): void {
+    if (adapterBusy) return;
+    const nowMs = Date.now();
+    if (adapterFailAt && nowMs - adapterFailAt < 30_000) return;
+    adapterBusy = true;
+    const started = nowMs;
+    run("powershell", ["-NoProfile", "-Command", "Get-NetAdapterStatistics | ConvertTo-Json"], {
+      windowsHide: true,
+      maxBuffer: 4 * 1024 * 1024,
+    })
+      .then(({ stdout }) => {
+        if (Date.now() - started > 2_000) {
+          adapterFailAt = Date.now();
+          return;
+        }
+        const stats = parseAdapterStats(stdout);
+        if (!stats) {
+          adapterFailAt = Date.now();
+          return;
+        }
+        const at = Date.now();
+        lastRates = ratesFromDeltas(prevAdapters, stats, (at - prevAdaptersAt) / 1000);
+        prevAdapters = stats;
+        prevAdaptersAt = at;
+        adapterFailAt = 0;
+      })
+      .catch(() => {
+        adapterFailAt = Date.now();
+      })
+      .finally(() => {
+        adapterBusy = false;
+      });
+  }
+
   async function refreshNames(): Promise<void> {
     if (namesPending) return;
     namesPending = true;
@@ -71,6 +114,11 @@ export function startCollector(emit: (s: Snapshot) => void, opts: CollectorOpts 
       const { stdout } = await run("netstat", ["-n", "-ano"], { windowsHide: true, maxBuffer: MAX_BUFFER });
       const sockets = parseNetstat(stdout);
       const now = Date.now();
+
+      if (now >= nextAdapterPoll) {
+        nextAdapterPoll = now + 2_000;
+        pollAdapters();
+      }
 
       if (names.size === 0) {
         await refreshNames();
@@ -104,8 +152,8 @@ export function startCollector(emit: (s: Snapshot) => void, opts: CollectorOpts 
       const totals: Totals = {
         conns: conns.filter((c) => c.state !== "listening").length,
         listening: conns.filter((c) => c.state === "listening").length,
-        down: 0,
-        up: 0,
+        down: lastRates.down,
+        up: lastRates.up,
       };
 
       const hosts = new Set<string>();
