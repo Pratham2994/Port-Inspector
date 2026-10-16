@@ -1,3 +1,5 @@
+import { useTip } from "./Tip";
+
 interface Props {
   seed: string;
   hot?: boolean;
@@ -17,8 +19,14 @@ function pointsFor(seed: string): string {
 }
 
 export default function Sparkline({ seed, hot }: Props) {
+  const tip = useTip();
   return (
-    <svg className={`spark${hot ? " hot" : ""} tip r`} data-tip="Traffic in the last minute. A higher line means more data moving." viewBox="0 0 48 17" preserveAspectRatio="none">
+    <svg
+      className={`spark${hot ? " hot" : ""}`}
+      viewBox="0 0 48 17"
+      preserveAspectRatio="none"
+      {...tip.for("Traffic in the last minute. A higher line means more data moving.")}
+    >
       <polyline points={pointsFor(seed)} />
     </svg>
   );

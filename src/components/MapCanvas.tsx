@@ -1,11 +1,12 @@
 import type { ConnGroup } from "../data/types";
+import { useTip } from "./Tip";
 
 interface Props {
   groups: ConnGroup[];
   selectedKey: string | null;
 }
 
-const CX = 150, CY = 215, R = 140, NODE = 28;
+const CX = 150, CY = 215, R = 140, NODE = 32, TICK_IN = 46, TICK_OUT = 54;
 const RADII = [85, 140];
 
 function hash(s: string): number {
@@ -31,6 +32,7 @@ function arcPath(angleDeg: number, frac: number): string {
 const short = (p: string) => p.replace(/\.exe$/i, "");
 
 export default function MapCanvas({ groups, selectedKey }: Props) {
+  const tip = useTip();
   const remotes = groups.filter((g) => g.remoteAddr != null && g.state === "established");
   const listeners = groups.filter((g) => g.listenPort != null);
 
@@ -44,7 +46,7 @@ export default function MapCanvas({ groups, selectedKey }: Props) {
           <text x={CX} y={308} textAnchor="middle" className="map-label" style={{ fontSize: 7.5 }}>~12 ms</text>
           <text x={CX} y={362} textAnchor="middle" className="map-label" style={{ fontSize: 7.5 }}>~80 ms</text>
 
-          {remotes.map((g, i) => {
+          {remotes.map((g) => {
             const h = hash(g.remoteAddr!);
             const angle = (h % 320) + 20;
             const frac = 0.55 + ((h >>> 8) % 40) / 100;
@@ -53,10 +55,15 @@ export default function MapCanvas({ groups, selectedKey }: Props) {
             const end = polar(angle, R * frac);
             const packets = Math.min(g.conns.length, sel ? 3 : 1);
             return (
-              <g key={g.key}>
+              <g
+                key={g.key}
+                {...tip.for(
+                  `${g.procName} talking to ${g.remoteAddr} on port ${g.remotePort}. Dots travelling the line are your data moving.`,
+                )}
+              >
                 <path id={id} className={`arc${sel ? " sel" : ""}`} pathLength={1} d={arcPath(angle, frac)} fill="none" />
                 {Array.from({ length: packets }, (_, p) => (
-                  <circle key={p} r={sel ? 2.2 : 2} fill={sel ? "#eceaea" : "#b5b2ad"} opacity={sel ? 1 : 0.6}>
+                  <circle key={p} r={sel ? 2.2 : 2} fill={sel ? "#ececea" : "#b5b2ad"} opacity={sel ? 1 : 0.6}>
                     <animateMotion dur={`${1.8 + p * 0.5}s`} begin={`${0.2 + p * 0.45}s`} repeatCount="indefinite">
                       <mpath xlinkHref={`#${id}`} href={`#${id}`} />
                     </animateMotion>
@@ -74,14 +81,17 @@ export default function MapCanvas({ groups, selectedKey }: Props) {
             const h = hash(String(g.listenPort));
             const angle = (h % 340) + 10;
             const a = (angle * Math.PI) / 180;
-            const x1 = CX + 38 * Math.cos(a), y1 = CY + 38 * Math.sin(a);
-            const x2 = CX + 46 * Math.cos(a), y2 = CY + 46 * Math.sin(a);
+            const x1 = CX + TICK_IN * Math.cos(a), y1 = CY + TICK_IN * Math.sin(a);
+            const x2 = CX + TICK_OUT * Math.cos(a), y2 = CY + TICK_OUT * Math.sin(a);
             const warn = g.listenPort === 2375;
+            const text = warn
+              ? `Docker's control door on this PC, open with no password. Anyone nearby could take over Docker through it. That is why this tick is red.`
+              : `A door held open by ${g.procName}, waiting for someone to connect. Pointing outward from your PC.`;
             return (
-              <g key={g.key}>
+              <g key={g.key} {...tip.for(text)}>
                 <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={warn ? "var(--warn)" : "rgba(255,255,255,0.22)"} strokeWidth={warn ? 1.4 : 1.2} />
                 {warn && (
-                  <text x={x2 + 6} y={y2 + 3} className="map-label" style={{ fill: "var(--warn)" }}>
+                  <text x={x2 + (x2 > CX ? 5 : -5)} y={y2 + 3} textAnchor={x2 > CX ? "start" : "end"} className="map-label" style={{ fill: "var(--warn)" }}>
                     :{g.listenPort}
                   </text>
                 )}
@@ -89,15 +99,17 @@ export default function MapCanvas({ groups, selectedKey }: Props) {
             );
           })}
 
-          <circle cx={CX} cy={CY} r="26" fill="var(--panel)" stroke="rgba(255,255,255,0.22)" strokeWidth="1" />
-          <text x={CX} y={CY - 2} textAnchor="middle" className="map-label w" style={{ fontSize: 8.5 }}>THIS PC</text>
-          <text x={CX} y={CY + 10} textAnchor="middle" className="map-label">192.168.1.24</text>
+          <g {...tip.for("Your PC. Every line on this map starts at this machine.")}>
+            <circle cx={CX} cy={CY} r={NODE} fill="var(--panel)" stroke="rgba(255,255,255,0.22)" strokeWidth="1" />
+            <text x={CX} y={CY - 2} textAnchor="middle" className="map-label w" style={{ fontSize: 8.5 }}>THIS PC</text>
+            <text x={CX} y={CY + 10} textAnchor="middle" className="map-label" style={{ fontSize: 7.5 }}>192.168.1.24</text>
+          </g>
         </svg>
       </div>
       <div className="legend">
-        <span className="tip" data-tip="Each arc is one place this PC is talking to right now. Dots travelling along it are your data moving."><i />remote endpoint</span>
-        <span className="tip" data-tip="Short ticks close to the middle are doors on this PC that stay open, waiting for someone to connect."><i className="tick" />listening port</span>
-        <span className="tip" data-tip="How fast the other computer answers. Closer to the middle means a faster reply."><i className="ring" />distance = latency</span>
+        <span {...tip.for("Each arc is one place this PC is talking to right now. Dots travelling along it are your data moving.")}><i />remote endpoint</span>
+        <span {...tip.for("Short ticks close to the middle are doors on this PC that stay open, waiting for someone to connect.")}><i className="tick" />listening port</span>
+        <span {...tip.for("How fast the other computer answers. Closer to the middle means a faster reply.")}><i className="ring" />distance = latency</span>
       </div>
     </div>
   );

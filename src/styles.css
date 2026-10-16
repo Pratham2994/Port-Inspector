@@ -119,14 +119,10 @@ body {
 @keyframes map-drawin { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 @keyframes map-route { 0%, 100% { stroke-opacity: 0.42; } 50% { stroke-opacity: 0.75; } }
 
-/* Tooltips */
-.tip { position: relative; cursor: default; }
-.tip::after {
-  content: attr(data-tip);
-  position: absolute;
-  bottom: calc(100% + 9px);
-  left: 0;
-  width: 210px;
+/* Tooltips: one fixed layer, never clipped by scroll containers */
+.tooltip {
+  position: fixed;
+  width: 220px;
   background: #1d1c1a;
   border: 1px solid var(--line-mid);
   border-radius: 6px;
@@ -140,11 +136,9 @@ body {
   transform: translateY(4px);
   transition: opacity 0.18s var(--ease), transform 0.18s var(--ease);
   pointer-events: none;
-  z-index: 30;
+  z-index: 100;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
-  white-space: normal;
 }
-.tip:hover::after { opacity: 1; transform: none; }
-.tip.r::after { left: auto; right: 0; }
-.tip.b::after { bottom: auto; top: calc(100% + 9px); transform: translateY(-4px); }
-.tip.b:hover::after { transform: none; }
+.tooltip.show { opacity: 1; transform: none; }
+.tooltip.below { transform: translateY(-4px); }
+.tooltip.below.show { transform: none; }

@@ -6,6 +6,7 @@ import { hasBridge } from "./env";
 import TopBar from "./components/TopBar";
 import MapCanvas from "./components/MapCanvas";
 import ConnList from "./components/ConnList";
+import { TipProvider } from "./components/Tip";
 
 export default function App() {
   const [snap, setSnap] = useState<Snapshot>(() => mockSnapshot(Date.now()));
@@ -39,17 +40,19 @@ export default function App() {
   const groups = groupByEndpoint(conns);
 
   return (
-    <div className="app">
-      <TopBar totals={snap.totals} />
-      <div className="main">
-        <MapCanvas groups={groups} selectedKey={selectedKey} />
-        <ConnList
-          groups={groups}
-          selectedKey={selectedKey}
-          now={snap.t}
-          onSelect={(k) => setSelectedKey((cur) => (cur === k ? null : k))}
-        />
+    <TipProvider>
+      <div className="app">
+        <TopBar totals={snap.totals} />
+        <div className="main">
+          <MapCanvas groups={groups} selectedKey={selectedKey} />
+          <ConnList
+            groups={groups}
+            selectedKey={selectedKey}
+            now={snap.t}
+            onSelect={(k) => setSelectedKey((cur) => (cur === k ? null : k))}
+          />
+        </div>
       </div>
-    </div>
+    </TipProvider>
   );
 }
