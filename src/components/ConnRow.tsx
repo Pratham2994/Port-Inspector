@@ -1,4 +1,5 @@
 import type { ConnGroup } from "../data/types";
+import { portInfo } from "../data/ports";
 import { fmtAge } from "../fmt";
 import { useTip } from "./Tip";
 
@@ -27,8 +28,12 @@ const stateTip: Record<ConnGroup["state"], string> = {
 
 export default function ConnRow({ group, selected, now, onSelect }: Props) {
   const tip = useTip();
-  const port = group.remotePort ?? group.listenPort;
+  const port = group.remotePort ?? group.listenPort ?? 0;
   const host = group.remoteAddr ?? group.conns[0].localAddr;
+  const info = portInfo(port);
+  const portTip = info
+    ? `Port ${port} is ${info.plain}.`
+    : `Port ${port} is a door number. Click the row to open it and read what this port is for.`;
   return (
     <div className={`row${selected ? " sel" : ""}`} onClick={() => onSelect(group.key)}>
       <div className="proc">
@@ -42,10 +47,7 @@ export default function ConnRow({ group, selected, now, onSelect }: Props) {
       </div>
       <div className="ep mono">
         {host}
-        <span
-          className="small"
-          {...tip.for(`Port ${port} is a door number. Click the row to open it and read what this port is for.`)}
-        >
+        <span className="small" {...tip.for(portTip)}>
           :{port} · {group.proto}
         </span>
       </div>

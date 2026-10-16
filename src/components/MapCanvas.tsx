@@ -1,5 +1,6 @@
 import type { ConnGroup } from "../data/types";
 import { placeEndpoint, radiusFracFor, stableHash } from "../data/maplayout";
+import { explainSocket } from "../data/ports";
 import { useTip } from "./Tip";
 
 interface Props {
@@ -101,9 +102,7 @@ export default function MapCanvas({ groups, selectedKey, latencies }: Props) {
             const x1 = CX + TICK_IN * Math.cos(a), y1 = CY + TICK_IN * Math.sin(a);
             const x2 = CX + TICK_OUT * Math.cos(a), y2 = CY + TICK_OUT * Math.sin(a);
             const warn = g.listenPort === 2375;
-            const text = warn
-              ? `Docker's control door on this PC, open with no password. Anyone nearby could take over Docker through it. That is why this tick is red.`
-              : `A door held open by ${g.procName}, waiting for someone to connect. Pointing outward from your PC.`;
+            const text = explainSocket(g.conns[0]?.localAddr ?? null, g.listenPort!, "listening", g.procName);
             return (
               <g key={g.key} {...tip.for(text)}>
                 <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={warn ? "var(--warn)" : "rgba(255,255,255,0.22)"} strokeWidth={warn ? 1.4 : 1.2} />
