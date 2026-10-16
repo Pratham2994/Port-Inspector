@@ -24,9 +24,9 @@ interface DoorGroup {
 }
 
 const VERDICT_LABEL: Record<ProcInfo["verdict"], string> = {
-  windows: "Windows",
-  known: "App",
-  unknown: "Check",
+  windows: "part of Windows",
+  known: "installed app",
+  unknown: "unrecognized",
 };
 
 const short = (p: string) => p.replace(/\.exe$/i, "");
@@ -89,11 +89,11 @@ function TalkerRow({ t, hostnames, selected, now, onSelect }: { t: TalkerGroup; 
       : "";
   return (
     <div className="item">
-      <div className={`prow${selected ? " sel" : ""}`} onClick={() => onSelect(`t:${t.procName}`, t.procName)}>
+      <div className={`prow${selected ? " sel" : ""}`} role="button" tabIndex={0} aria-expanded={selected} onClick={() => onSelect(`t:${t.procName}`, t.procName)} onKeyDown={(e) => e.key === "Enter" && onSelect(`t:${t.procName}`, t.procName)}>
         <div className="pmain">
           <span className="pname">{name}</span>
-          <Badge proc={t.proc} />
           <span className="pwhat">{t.proc.what}</span>
+          <Badge proc={t.proc} />
         </div>
         <div className="pmeta mono">
           <span>
@@ -167,11 +167,11 @@ function DoorRow({ g, selected, onSelect }: { g: DoorGroup; selected: boolean; o
   const name = displayName(g.procName);
   return (
     <div className="item">
-      <div className={`prow${selected ? " sel" : ""}${risky ? " risky" : ""}`} onClick={() => onSelect(g.key, g.procName)}>
+      <div className={`prow${selected ? " sel" : ""}`} role="button" tabIndex={0} aria-expanded={selected} onClick={() => onSelect(g.key, g.procName)} onKeyDown={(e) => e.key === "Enter" && onSelect(g.key, g.procName)}>
         <div className="pmain">
           <span className="pname">{name}</span>
-          <Badge proc={g.proc} />
           <span className="pwhat">{g.proc.what}</span>
+          {risky ? <span className="risk">risky</span> : <Badge proc={g.proc} />}
         </div>
         <div className="pmeta mono">
           <span>
@@ -218,8 +218,10 @@ function Section({ id, title, count, tipText, open, onToggle, children }: { id: 
   const tip = useTip();
   return (
     <div className="section">
-      <div className="shead" onClick={() => onToggle(id)}>
-        <span className="chev">{open ? "▾" : "▸"}</span>
+      <div className="shead" role="button" tabIndex={0} aria-expanded={open} onClick={() => onToggle(id)} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onToggle(id))}>
+        <span className={`chev${open ? " open" : ""}`} aria-hidden>
+          <svg width="8" height="8" viewBox="0 0 8 8"><path d="M2.5 1.5 5.5 4 2.5 6.5" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </span>
         <span className="stitle" {...tip.for(tipText)}>
           {title}
         </span>

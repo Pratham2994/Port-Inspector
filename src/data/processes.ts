@@ -13,7 +13,7 @@ export interface ProcInfo {
 const VERDICT_TEXT: Record<ProcVerdict, string> = {
   windows: "Normal on every Windows PC. Do not worry.",
   known: "A program you installed.",
-  unknown: "Not recognized. If you do not know this name, look at it in Task Manager.",
+  unknown: "If you do not know this name, right-click it in Task Manager and choose Open file location to see where it lives.",
 };
 
 interface Entry {
@@ -179,6 +179,22 @@ const EXACT: Record<string, Entry> = {
   powerpnt: e("Microsoft PowerPoint", "office"),
   officeclicktorun: e("Microsoft Office updates", "office"),
 
+  microsoftstartfeedprovider: e("the news and weather feed for Windows Widgets", "win", { why: "It downloads news and weather cards from Microsoft for the Widgets panel" }),
+  microsoftedgeupdate: e("Microsoft Edge updates", "win"),
+  msedgeupdate: e("Microsoft Edge updates", "win"),
+  crossdeviceservice: e("Windows cross-device features (Phone Link)", "win"),
+  crossdeviceresume: e("Windows cross-device features (Phone Link)", "win"),
+  copilotapp: e("Microsoft Copilot", "ai"),
+  "m365copilot": e("Microsoft 365 Copilot", "ai"),
+  smartscreen_update: e("Windows SmartScreen", "win"),
+  sgrmbroker: e("Windows System Guard", "win"),
+  wsappx: e("the Microsoft Store installer", "win"),
+  winstore: e("the Microsoft Store", "win"),
+  "winstore.app": e("the Microsoft Store", "win"),
+  photos: e("the Windows Photos app", "win"),
+  "microsoft.photos": e("the Windows Photos app", "win"),
+  clipchamp: e("Clipchamp, Microsoft's video editor", "office"),
+
   // Browsers
   chrome: e("Google Chrome, a web browser", "browser"),
   msedge: e("Microsoft Edge, a web browser", "browser"),
@@ -279,6 +295,33 @@ const EXACT: Record<string, Entry> = {
   obsidian: e("Obsidian, a notes app", "office"),
   github_desktop: e("GitHub Desktop", "dev"),
   githubdesktop: e("GitHub Desktop", "dev"),
+
+  curl: e("curl, a command-line download tool", "dev", { why: "Something (a script, an installer, or you in a terminal) is downloading or calling a web address with it", each: "one download or web request" }),
+  wget: e("wget, a command-line download tool", "dev", { each: "one download" }),
+  electron: e("an Electron app (a desktop app built from web tech), often a dev build", "dev", { why: "Electron apps run several processes that talk to each other on this PC" }),
+  winget: e("winget, the Windows package installer", "dev", { each: "a package download" }),
+  choco: e("Chocolatey, a package installer", "dev"),
+  scoop: e("Scoop, a package installer", "dev"),
+  uv: e("uv, a Python package tool", "dev"),
+  pip: e("pip, downloading Python packages", "dev"),
+  ruby: e("Ruby, running a script", "dev"),
+  php: e("PHP, running a script", "dev"),
+  gradle: e("Gradle, a build tool", "dev"),
+  playwright: e("Playwright, a browser testing tool", "dev"),
+  "chrome-headless-shell": e("a hidden Chrome used by a testing tool", "dev"),
+  vscode: e("Visual Studio Code, a code editor", "dev"),
+  kiro: e("Kiro, an AI code editor", "dev"),
+  trae: e("Trae, an AI code editor", "dev"),
+  antigravity: e("Antigravity, an AI code editor", "dev"),
+  warp: e("Warp, a terminal", "dev"),
+  wezterm: e("WezTerm, a terminal", "dev"),
+  "wezterm-gui": e("WezTerm, a terminal", "dev"),
+  alacritty: e("Alacritty, a terminal", "dev"),
+  tabby: e("Tabby, a terminal", "dev"),
+  dbeaver: e("DBeaver, a database tool", "dev"),
+  "mongodbcompass": e("MongoDB Compass", "dev"),
+  ssms: e("SQL Server Management Studio", "dev"),
+  sqlservr: e("Microsoft SQL Server, a database", "dev", { why: "A database waits for apps to connect to it. Fine on this PC, risky if open to the network" }),
 
   // Containers and virtual machines
   "docker desktop": e("Docker Desktop", "vm"),

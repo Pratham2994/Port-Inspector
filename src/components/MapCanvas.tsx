@@ -120,7 +120,7 @@ export default function MapCanvas({ conns, selectedProc, latencies, hostnames }:
             return (
               <g key={c.net} className={dim ? "cl dim" : "cl"} {...tip.for(clusterTip(c, org))}>
                 <path id={id} className={`arc${sel ? " sel" : ""}`} pathLength={1} d={arcPath(angle, r)} fill="none" style={{ strokeWidth: width }} />
-                <circle r={sel ? 2.4 : 1.8} fill={sel ? "#ffffff" : "#7fd8e6"} opacity={sel ? 1 : 0.55}>
+                <circle r={sel ? 2.4 : 1.8} fill={sel ? "var(--ink)" : "var(--ink-4)"} opacity={sel ? 1 : 0.55}>
                   <animateMotion dur={`${2.2 - Math.min(1, c.sockets / maxSockets)}s`} repeatCount="indefinite">
                     <mpath xlinkHref={`#${id}`} href={`#${id}`} />
                   </animateMotion>
@@ -150,7 +150,7 @@ export default function MapCanvas({ conns, selectedProc, latencies, hostnames }:
           {risky.map((d, i) => (
             <g key={d.port} {...tip.for(`Port ${d.port} is open: ${d.info?.plain ?? ""}.`)}>
               <text x={CX} y={CY + NODE + 12 + i * 10} textAnchor="middle" className="map-label" style={{ fill: "var(--warn)" }}>
-                ⚠ :{d.port} open
+                port {d.port} open to the network
               </text>
             </g>
           ))}
