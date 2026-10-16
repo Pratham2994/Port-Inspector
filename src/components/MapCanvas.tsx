@@ -1,19 +1,16 @@
 import type { ConnGroup } from "../data/types";
+import { placeEndpoint, radiusFracFor, stableHash } from "../data/maplayout";
 import { useTip } from "./Tip";
 
 interface Props {
   groups: ConnGroup[];
   selectedKey: string | null;
+  latencies: Record<string, number | null>;
 }
 
 const CX = 150, CY = 215, R = 140, NODE = 32, TICK_IN = 46, TICK_OUT = 54;
-const RADII = [85, 140];
-
-function hash(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return h;
-}
+const RING_12 = R * radiusFracFor(12);
+const RING_80 = R * radiusFracFor(80);
 
 function polar(angleDeg: number, r: number) {
   const a = (angleDeg * Math.PI) / 180;
@@ -51,7 +48,7 @@ function localIpOf(groups: ConnGroup[]): string {
   return best || "this PC";
 }
 
-export default function MapCanvas({ groups, selectedKey }: Props) {
+export default function MapCanvas({ groups, selectedKey, latencies }: Props) {
   const tip = useTip();
   const remotes = groups.filter((g) => g.remoteAddr != null && g.state === "established");
   const listeners = groups.filter((g) => g.listenPort != null);
@@ -61,28 +58,28 @@ export default function MapCanvas({ groups, selectedKey }: Props) {
     <div className="map">
       <div className="map-canvas">
         <svg viewBox="0 0 300 430" preserveAspectRatio="xMidYMid meet">
-          {RADII.map((r) => (
+          {[RING_12, RING_80].map((r) => (
             <circle key={r} cx={CX} cy={CY} r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
           ))}
-          <text x={CX} y={308} textAnchor="middle" className="map-label" style={{ fontSize: 7.5 }}>~12 ms</text>
-          <text x={CX} y={362} textAnchor="middle" className="map-label" style={{ fontSize: 7.5 }}>~80 ms</text>
+          <text x={CX} y={CY + RING_12 + 12} textAnchor="middle" className="map-label" style={{ fontSize: 7.5 }}>~12 ms</text>
+          <text x={CX} y={CY + RING_80 + 12} textAnchor="middle" className="map-label" style={{ fontSize: 7.5 }}>~80 ms</text>
 
           {remotes.map((g) => {
-            const h = hash(g.remoteAddr!);
-            const angle = (h % 320) + 20;
-            const frac = 0.55 + ((h >>> 8) % 40) / 100;
+            const latency = latencies[g.remoteAddr!] ?? null;
+            const { angle, radiusFrac } = placeEndpoint(g.remoteAddr!, latency);
             const id = `arc-${g.key.replace(/[^a-z0-9]/gi, "")}`;
             const sel = g.key === selectedKey;
-            const end = polar(angle, R * frac);
+            const end = polar(angle, R * radiusFrac);
             const packets = Math.min(g.conns.length, sel ? 3 : 1);
+            const latText = latency != null ? ` It answers in about ${latency} ms.` : latency === null && g.remoteAddr! in latencies ? " It did not answer when asked." : "";
             return (
               <g
                 key={g.key}
                 {...tip.for(
-                  `${g.procName} talking to ${g.remoteAddr} on port ${g.remotePort}. Dots travelling the line are your data moving.`,
+                  `${g.procName} talking to ${g.remoteAddr} on port ${g.remotePort}. Dots travelling the line are your data moving.${latText}`,
                 )}
               >
-                <path id={id} className={`arc${sel ? " sel" : ""}`} pathLength={1} d={arcPath(angle, frac)} fill="none" />
+                <path id={id} className={`arc${sel ? " sel" : ""}`} pathLength={1} d={arcPath(angle, radiusFrac)} fill="none" />
                 {Array.from({ length: packets }, (_, p) => (
                   <circle key={p} r={sel ? 2.2 : 2} fill={sel ? "#ececea" : "#b5b2ad"} opacity={sel ? 1 : 0.6}>
                     <animateMotion dur={`${1.8 + p * 0.5}s`} begin={`${0.2 + p * 0.45}s`} repeatCount="indefinite">
@@ -99,8 +96,7 @@ export default function MapCanvas({ groups, selectedKey }: Props) {
           })}
 
           {listeners.map((g) => {
-            const h = hash(String(g.listenPort));
-            const angle = (h % 340) + 10;
+            const angle = 10 + (stableHash(String(g.listenPort)) % 340);
             const a = (angle * Math.PI) / 180;
             const x1 = CX + TICK_IN * Math.cos(a), y1 = CY + TICK_IN * Math.sin(a);
             const x2 = CX + TICK_OUT * Math.cos(a), y2 = CY + TICK_OUT * Math.sin(a);

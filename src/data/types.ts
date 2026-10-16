@@ -24,6 +24,7 @@ export interface Snapshot {
   t: number;
   conns: Connection[];
   totals: Totals;
+  latencies?: Record<string, number | null>;
 }
 
 /** Raw netstat row before it is joined with process names and history. */

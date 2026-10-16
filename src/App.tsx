@@ -27,7 +27,7 @@ export default function App() {
       <div className="app">
         <TopBar totals={snap.totals} />
         <div className="main">
-          <MapCanvas groups={groups} selectedKey={selectedKey} />
+          <MapCanvas groups={groups} selectedKey={selectedKey} latencies={snap.latencies ?? {}} />
           <ConnList
             groups={groups}
             selectedKey={selectedKey}
