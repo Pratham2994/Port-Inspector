@@ -3,7 +3,7 @@ name: CI
 # Windows, because the integration tests run the real netstat, tasklist, ping and PowerShell.
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
 
 jobs:
