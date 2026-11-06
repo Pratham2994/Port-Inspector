@@ -110,6 +110,8 @@ const EXACT: Record<string, Entry> = {
   wininit: e("the Windows boot helper", "win"),
   winlogon: e("the Windows login screen", "win"),
   csrss: e("a core Windows process", "win"),
+  // Exact, or the hardware-maker pattern below ("msi") would claim it
+  msiexec: e("Windows Installer, which installs and updates programs", "win"),
   smss: e("a core Windows process", "win"),
   dwm: e("the Windows screen compositor", "win"),
   explorer: e("your desktop, taskbar and files", "win"),

@@ -9,6 +9,11 @@ describe("procInfo", () => {
     expect(p?.why).toMatch(/normal/i);
   });
 
+  test("Windows Installer is Windows, not a hardware maker", () => {
+    expect(procInfo("msiexec.exe").verdict).toBe("windows");
+    expect(procInfo("MSIAfterburner.exe").what).toMatch(/hardware maker/);
+  });
+
   test("knows the kernel pseudo-process", () => {
     expect(procInfo("System")?.verdict).toBe("windows");
   });
