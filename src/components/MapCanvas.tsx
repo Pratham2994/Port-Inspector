@@ -1,6 +1,6 @@
 import type { Connection } from "../data/types";
 import { radiusFracFor, stableHash } from "../data/maplayout";
-import { listenerDoors, othersCount, remoteClusters, type RemoteCluster } from "../data/clusters";
+import { listenerDoors, netOf, othersCount, remoteClusters, type RemoteCluster } from "../data/clusters";
 import { procInfo } from "../data/processes";
 import { orgFor } from "../data/orgs";
 import { shortAddr } from "../fmt";
@@ -68,7 +68,7 @@ function localIpOf(conns: Connection[]): string {
 function clusterOrg(c: RemoteCluster, conns: Connection[], hostnames: Record<string, string | null>): string | null {
   for (const x of conns) {
     if (x.remoteAddr == null || !c.procs.includes(x.procName)) continue;
-    if (!(x.remoteAddr === c.net || x.remoteAddr.startsWith(c.net))) continue;
+    if (netOf(x.remoteAddr) !== c.net) continue;
     const org = orgFor(x.remoteAddr, hostnames[x.remoteAddr]);
     if (org) return org;
   }
@@ -148,7 +148,7 @@ export default function MapCanvas({ conns, selectedProc, latencies, hostnames }:
           </g>
 
           {risky.map((d, i) => (
-            <g key={d.port} {...tip.for(`Port ${d.port} is open: ${d.info?.plain ?? ""}.`)}>
+            <g key={`${d.pid}|${d.port}`} {...tip.for(`Port ${d.port} is open: ${d.info?.plain ?? ""}.`)}>
               <text x={CX} y={CY + NODE + 12 + i * 10} textAnchor="middle" className="map-label" style={{ fill: "var(--warn)" }}>
                 port {d.port} open to the network
               </text>

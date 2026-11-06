@@ -39,17 +39,3 @@ export interface RawSocket {
   state: string;
   pid: number;
 }
-
-/** One list row: every socket one process holds to the same endpoint (or the same listening port). */
-export interface ConnGroup {
-  key: string;
-  procName: string;
-  pid: number;
-  proto: "tcp" | "udp";
-  remoteAddr: string | null;
-  remotePort: number | null;
-  listenPort: number | null;
-  state: ConnState;
-  conns: Connection[];
-  firstSeen: number;
-}

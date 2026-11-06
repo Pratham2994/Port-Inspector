@@ -20,8 +20,9 @@ describe("portInfo", () => {
     expect(portInfo(27017)?.name).toBe("MongoDB");
   });
 
-  test("knows 5354", () => {
-    expect(portInfo(5354)).not.toBeNull();
+  test("knows 5354 and 5355 apart", () => {
+    expect(portInfo(5354)?.name).toBe("Bonjour");
+    expect(portInfo(5355)?.name).toBe("LLMNR");
   });
 });
 

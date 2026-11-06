@@ -44,10 +44,17 @@ export interface ListenerDoor {
   info: PortEntry | null;
 }
 
-const netOf = (addr: string): string => {
+/** The network an address belongs to: the first three octets (/24) for IPv4, the first three groups (/48) for IPv6. */
+export const netOf = (addr: string): string => {
   if (addr.includes(":")) {
-    const parts = addr.split(":").filter(Boolean);
-    return parts.slice(0, 2).join(":");
+    const [head, tail = ""] = addr.split("::");
+    const left = head ? head.split(":") : [];
+    const right = tail ? tail.split(":") : [];
+    const groups = addr.includes("::") ? [...left, ...Array(Math.max(0, 8 - left.length - right.length)).fill("0"), ...right] : left;
+    return groups
+      .slice(0, 3)
+      .map((g) => g.toLowerCase().replace(/^0+(?=.)/, ""))
+      .join(":");
   }
   const octets = addr.split(".");
   return octets.length === 4 ? octets.slice(0, 3).join(".") : addr;

@@ -1,6 +1,19 @@
 import { describe, expect, test } from "vitest";
 import type { Connection } from "../src/data/types";
-import { listenerDoors, othersCount, remoteClusters, talkerGroups } from "../src/data/clusters";
+import { listenerDoors, netOf, othersCount, remoteClusters, talkerGroups } from "../src/data/clusters";
+
+describe("netOf", () => {
+  test("IPv4 is a /24", () => {
+    expect(netOf("142.250.10.5")).toBe("142.250.10");
+    expect(netOf("142.250.1.5")).not.toBe(netOf("142.250.10.5"));
+  });
+  test("IPv6 is a /48, with :: expanded", () => {
+    expect(netOf("2404:6800:4009:82a::200e")).toBe("2404:6800:4009");
+    expect(netOf("2404:6800:4009:0812::2004")).toBe(netOf("2404:6800:4009:82a::200e"));
+    expect(netOf("2a00:1450::1")).toBe("2a00:1450:0");
+    expect(netOf("2606:4700:0010:0000::6814:1")).toBe("2606:4700:10");
+  });
+});
 
 function conn(p: Partial<Connection> & Pick<Connection, "procName" | "pid" | "remoteAddr" | "remotePort">): Connection {
   return {
